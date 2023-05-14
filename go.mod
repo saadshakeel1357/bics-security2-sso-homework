@@ -1,4 +1,4 @@
-module github.com/afonsoarriaga/simple-oidc-app.git
+module github.com/afonsoarriaga/bics-security2-sso-homework.git
 
 go 1.18
 

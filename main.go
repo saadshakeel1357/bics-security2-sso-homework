@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -77,7 +78,7 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 	config := googleConfig()
 
 	// exchange authorization code for token
-	token, err := config.Exchange(oauth2.NoContext, code)
+	token, _ := config.Exchange(context.TODO(), code)
 
 	// extract token_id
 	idToken := token.Extra("id_token")

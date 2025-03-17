@@ -133,8 +133,38 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// ***** TASK #4: VALIDATE `iss`, `aud` and `exp` *****
+	// DONE
+
 	// parse claims and create person
-	claims, _ := parsedToken.Claims.(jwt.MapClaims)
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok || !parsedToken.Valid {
+		fmt.Println("ERROR: Invalid token claims!")
+		return
+	}
+
+	// Check issuer
+	if claims["iss"] != "accounts.google.com" && claims["iss"] != "https://accounts.google.com" {
+		fmt.Println("ERROR: Invalid issuer (iss)!")
+		return
+	}
+
+	// Check audience
+	if claims["aud"] != googleConfig().ClientID {
+		fmt.Println("ERROR: Invalid audience (aud)!")
+		return
+	}
+
+	// Check expiration
+	expFloat, ok := claims["exp"].(float64)
+	if !ok {
+		fmt.Println("ERROR: Invalid or missing exp claim!")
+		return
+	}
+	if float64(time.Now().Unix()) > expFloat {
+		fmt.Println("ERROR: Token is expired!")
+		return
+	}
+	
 	person := Person{Name: claims["given_name"].(string), Email: claims["email"].(string)}
 	fmt.Printf("Name: %v, Email: %v\n", person.Name, person.Email)
 

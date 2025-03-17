@@ -8,8 +8,11 @@ import (
 	"net/http"
 	"os"
 
+	"time"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/base64"
 
 
 	"github.com/MicahParks/keyfunc"
@@ -25,6 +28,8 @@ type Person struct {
 }
 
 var listRandomStates map[string]bool = make(map[string]bool)
+
+var pkceMap = make(map[string]string)
 
 func randomHex(n int) (string, error) {
 	// ***** TASK #2: FIX RANDOM STATE *****
@@ -65,9 +70,21 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	// check details here: https://developers.google.com/identity/protocols/oauth2/native-app#create-code-challenge
 	// ...
 
+	// Generate a code verifier
+	codeVerifier, _ := randomHex(32)
+	// Generate a code challenge (SHA256 hashed & base64-URL-encoded)
+	hash := sha256.Sum256([]byte(codeVerifier))
+	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
+	// Store the verifier for use in callback
+	pkceMap[state] = codeVerifier
+
+
 	// redirect user to Google's consent page to ask for permission for the scopes specified in config
 	listRandomStates[state] = true
-	url := config.AuthCodeURL(state)
+	url := config.AuthCodeURL(state,
+		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
 	fmt.Printf("User %v is being redirected to... %v\n", state, url)
 	http.Redirect(w, req, url, http.StatusFound)
 }
@@ -90,7 +107,9 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 	config := googleConfig()
 
 	// exchange authorization code for token
-	token, _ := config.Exchange(context.TODO(), code)
+	token, _ := config.Exchange(context.TODO(), code,
+		oauth2.SetAuthURLParam("code_verifier", pkceMap[state]),
+	)
 
 	// extract token_id
 	idToken := token.Extra("id_token")

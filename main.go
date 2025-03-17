@@ -8,7 +8,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/golang-jwt/jwt/v5"
+	"crypto/rand"
+	"encoding/hex"
+
+
+	"github.com/MicahParks/keyfunc"
+	"github.com/golang-jwt/jwt/v4"   // had to change this to v4 instead of v5 because: "cannot use googleJwks.Keyfunc (value of type func(token *"github.com/golang-jwt/jwt/v4".Token) (interface{}, error)) as "github.com/golang-jwt/jwt/v5".Keyfunc value in argument to jwt.Parse"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -105,11 +110,21 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 	// ***** HINT 2: Import package "github.com/MicahParks/keyfunc" to select the correct public key based on the `kid` of `idToken` *****
 
 	// parse the JWT idToken
-	var myDummyKeyFunc jwt.Keyfunc = func(token *jwt.Token) (interface{}, error) {
-		// this should actually return the public key to validate `token`
-		return nil, nil
+	// var myDummyKeyFunc jwt.Keyfunc = func(token *jwt.Token) (interface{}, error) {
+	// 	// this should actually return the public key to validate `token`
+	// 	return nil, nil
+	// }
+
+	jwksURL := "https://www.googleapis.com/oauth2/v3/certs"
+	googleJwks, err := keyfunc.Get(jwksURL, keyfunc.Options{})
+	if err != nil {
+		log.Fatalf("Failed to create Google JWKS: %v", err)
 	}
-	parsedToken, err := jwt.Parse(idToken.(string), myDummyKeyFunc)
+
+
+	// parsedToken, err := jwt.Parse(idToken.(string), myDummyKeyFunc)
+	parsedToken, err := jwt.Parse(idToken.(string), googleJwks.Keyfunc)
+
 
 	if err != nil {
 		fmt.Println("ERROR: Could not validate token!")

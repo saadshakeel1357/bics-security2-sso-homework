@@ -14,7 +14,6 @@ import (
 	"encoding/hex"
 	"encoding/base64"
 
-
 	"github.com/MicahParks/keyfunc"
 	"github.com/golang-jwt/jwt/v4"   // had to change this to v4 instead of v5 because: "cannot use googleJwks.Keyfunc (value of type func(token *"github.com/golang-jwt/jwt/v4".Token) (interface{}, error)) as "github.com/golang-jwt/jwt/v5".Keyfunc value in argument to jwt.Parse"
 	"github.com/joho/godotenv"
@@ -66,10 +65,6 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	// sample random state
 	state, _ := randomHex(8)
 
-	// ***** TASK #5: ADD PKCE EXTENSION *****
-	// check details here: https://developers.google.com/identity/protocols/oauth2/native-app#create-code-challenge
-	// ...
-
 	// Generate a code verifier
 	codeVerifier, _ := randomHex(32)
 	// Generate a code challenge (SHA256 hashed & base64-URL-encoded)
@@ -77,7 +72,6 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
 	// Store the verifier for use in callback
 	pkceMap[state] = codeVerifier
-
 
 	// redirect user to Google's consent page to ask for permission for the scopes specified in config
 	listRandomStates[state] = true
@@ -113,26 +107,8 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 
 	// extract token_id
 	idToken := token.Extra("id_token")
-	fmt.Println(idToken) // inspect token here: https://jwt.io
+	// fmt.Println(idToken) // inspect token here: https://jwt.io // inspection works for me
 
-	// access token is not needed for authentication but could be used to access resources
-	// accessToken := token.Extra("access_token")
-
-	// validation of idToken requires several steps:
-	// (1) verify the signature against the issuer, see jwks_uri metadata value of the Discovery https://accounts.google.com/.well-known/openid-configuration;
-	// (2) Verify that the value of the iss claim in the ID token is equal to https://accounts.google.com or accounts.google.com;
-	// (3) verify that the value of the aud claim in the ID token is equal to your app's client ID;
-	// (4) verify that the expiry time (exp claim) of the ID token has not passed;
-
-	// ***** TASK #3: VALIDATE THE DIGITAL SIGNATURE OF `idToken` *****
-	// ***** HINT 1: Inspect `idToken` and notice that `kid` is the reference of Google's public key used to sign `idToken` *****
-	// ***** HINT 2: Import package "github.com/MicahParks/keyfunc" to select the correct public key based on the `kid` of `idToken` *****
-
-	// parse the JWT idToken
-	// var myDummyKeyFunc jwt.Keyfunc = func(token *jwt.Token) (interface{}, error) {
-	// 	// this should actually return the public key to validate `token`
-	// 	return nil, nil
-	// }
 
 	jwksURL := "https://www.googleapis.com/oauth2/v3/certs"
 	googleJwks, err := keyfunc.Get(jwksURL, keyfunc.Options{})
@@ -150,9 +126,6 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 	} else {
 		fmt.Println("Received a valid token!")
 	}
-
-	// ***** TASK #4: VALIDATE `iss`, `aud` and `exp` *****
-	// DONE
 
 	// parse claims and create person
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
@@ -194,8 +167,6 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 
-	// ***** TASK #1: CREATE .env FILE AND DEFINE ENVIRONMENT VARIABLES `CLIENTID` and `CLIENTSECRET` *****
-	// DONE
 
 	// load .env file
 	err := godotenv.Load(".env")

@@ -23,7 +23,14 @@ var listRandomStates map[string]bool = make(map[string]bool)
 
 func randomHex(n int) (string, error) {
 	// ***** TASK #2: FIX RANDOM STATE *****
-	return "00000", nil
+	// DONE
+
+	bytes := make([]byte, n)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func googleConfig() *oauth2.Config {
@@ -124,6 +131,7 @@ func handlerCallback(w http.ResponseWriter, req *http.Request) {
 func main() {
 
 	// ***** TASK #1: CREATE .env FILE AND DEFINE ENVIRONMENT VARIABLES `CLIENTID` and `CLIENTSECRET` *****
+	// DONE
 
 	// load .env file
 	err := godotenv.Load(".env")
